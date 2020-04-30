@@ -91,7 +91,7 @@ function emitirNFSeSincrono(conteudo, tpConteudo, CNPJ, im, municipio,
 tpAmb: String; exibeNaTela: boolean = false): String;
 var
   retorno, resposta, statusEnvio, statusConsulta, motivo, nsNRec,
-  chave, cStat, nNF, urlImpressao: String;
+  chave, cStat, nNF, pdf, xml, caminho: String;
   erro: TJSONValue;
   jsonRetorno, jsonAux: TJSONObject;
 begin
@@ -104,7 +104,9 @@ begin
   chave := '';
   nNF := '';
   cStat := '';
-  urlImpressao := '';
+  pdf := '';
+  xml := '';
+  caminho := '';
 
   resposta := emitirNFSe(conteudo, tpConteudo, tpAmb, municipio);
   jsonRetorno := TJSONObject.ParseJSONValue(TEncoding.ASCII.GetBytes(resposta),
@@ -134,12 +136,14 @@ begin
 
         chave := jsonRetorno.GetValue('chave').Value;
         motivo := jsonRetorno.GetValue('xMotivo').Value;
-        urlImpressao := jsonRetorno.GetValue('urlImpressao').Value;
         nNF := jsonRetorno.GetValue('nNF').Value;
-
+        pdf := jsonRetorno.GetValue('urlImpressao').Value;
+        xml := jsonRetorno.GetValue('xml').Value;
+        caminho := ExtractFilePath(GetCurrentDir) + CNPJ + '\xmls\';
+        salvarXML(xml, caminho, chave + '-procNFSe.xml');
         if(exibeNaTela)then
         begin
-            ShellExecute(Application.Handle, 'open', PChar(urlImpressao),
+            ShellExecute(Application.Handle, 'open', PChar(pdf),
             nil, nil, SW_SHOWMAXIMIZED);
         end;
       end
