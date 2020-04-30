@@ -15,6 +15,7 @@ function emitirNFSeSincrono(conteudo, tpConteudo, CNPJ, im, municipio,
 tpAmb: String; exibeNaTela: boolean = false): String;
 function emitirNFSe(conteudo, tpConteudo, tpAmb, municipio: String): String;
 function consultarStatusProcessamento(CNPJ, nsNRec, tpAmb, IM, municipio: String): String;
+procedure downloadNFSe(xml, pdf, chave, CNPJ:String; exibeNatela: boolean);
 //Eventos
 function cancelarNFSe(xml, municipio, tpAmb, caminho: String): String; Overload;
 function cancelarNFSe(cnpj, im, municipio, cMun, codigo, nNF, tpAmb, caminho: String): String;  Overload;
@@ -36,7 +37,7 @@ uses
 
 var
   tempoEspera: Integer = 600;
-  token: String = 'SEU TOKEN';
+  token: String = 'SEU_TOKEN';
 
 // Função genérica de envio para um url
 function enviaConteudoParaAPI(conteudoEnviar, url, tpConteudo: String; tpAmb: String = ''): String;
@@ -137,15 +138,12 @@ begin
         chave := jsonRetorno.GetValue('chave').Value;
         motivo := jsonRetorno.GetValue('xMotivo').Value;
         nNF := jsonRetorno.GetValue('nNF').Value;
+
         pdf := jsonRetorno.GetValue('urlImpressao').Value;
         xml := jsonRetorno.GetValue('xml').Value;
-        caminho := ExtractFilePath(GetCurrentDir) + CNPJ + '\xmls\';
-        salvarXML(xml, caminho, chave + '-procNFSe.xml');
-        if(exibeNaTela)then
-        begin
-            ShellExecute(Application.Handle, 'open', PChar(pdf),
-            nil, nil, SW_SHOWMAXIMIZED);
-        end;
+
+        downloadNFSe(xml, pdf, chave, CNPJ, exibeNatela);
+
       end
       else
       begin
@@ -192,8 +190,8 @@ function emitirNFSe(conteudo, tpConteudo, tpAmb, municipio: String): String;
 var
   url, resposta: String;
 begin
-  //url := 'https://nfseapi.ns.eti.br/v1/' + municipio + '/emissao';
-  url := 'http://nfseapihml.ns.eti.br/v1/' + municipio + '/emissao';
+
+  url := 'https://nfseapi.ns.eti.br/v1/' + municipio + '/emissao';
 
   gravaLinhaLog('[ENVIO_DADOS]');
   gravaLinhaLog(conteudo);
@@ -218,8 +216,7 @@ begin
               '"IM": "'      + IM     + '"'  +
           '}';
 
-  //url := 'https://nfseapi.ns.eti.br/v1/' + municipio + '/emissao/status';
-  url := 'http://nfseapihml.ns.eti.br/v1/' + municipio + '/emissao/status';
+  url := 'https://nfseapi.ns.eti.br/v1/' + municipio + '/emissao/status';
 
   gravaLinhaLog('[CONSULTA_STATUS_PROCESSAMENTO_DADOS]');
   gravaLinhaLog(json);
@@ -231,13 +228,27 @@ begin
 
   Result := resposta;
 end;
+procedure downloadNFSe(xml, pdf, chave, CNPJ:String; exibeNatela: boolean);
+var
+  caminho: String;
+begin
+
+  caminho := ExtractFilePath(GetCurrentDir) + CNPJ + '\xmls\';
+
+  salvarXML(xml, caminho, chave);
+
+  if(exibeNaTela)then
+  begin
+      ShellExecute(Application.Handle, 'open', PChar(pdf),
+      nil, nil, SW_SHOWMAXIMIZED);
+  end;
+
+end;
 
 // Realizar o cancelamento da NF-e
 function cancelarNFSe(xml, municipio, tpAmb, caminho: String): String; Overload;
 begin
-
   Result := cancelarNFSe(xml, 'xml', municipio, tpAmb, caminho);
-
 end;
 function cancelarNFSe(cnpj, im, municipio, cMun, codigo, nNF, tpAmb, caminho: String): String;  Overload;
 var
@@ -253,6 +264,7 @@ begin
           '}';
 
   Result := cancelarNFSe(json, 'json', municipio, tpAmb, caminho);
+
 end;
 function cancelarNFSe(conteudo, tpConteudo, municipio, tpAmb, caminho: String): String;  Overload;
 var
@@ -260,6 +272,7 @@ var
   retEvento: TJSONValue;
   jsonRetorno, jsonAux: TJSONObject;
 begin
+
   url := 'https://nfseapi.ns.eti.br/v1/' + municipio + '/cancelar';
 
   gravaLinhaLog('[CANCELAMENTO_DADOS]');
@@ -299,9 +312,7 @@ end;
 function listarNSNRecs(cnpj, tpAmb, nRPS, serieRPS: String): String; Overload;
 var
   json: String;
-  url, resposta, respostaDownload: String;
-  status: String;
-  jsonRetorno: TJSONObject;
+  resposta: String;
 begin
   json := '{' +
               '"CNPJ": "'     + cnpj     + '",' +
@@ -317,9 +328,7 @@ end;
 function listarNSNRecs(cnpj, tpAmb, nNF: String): String; Overload;
 var
   json: String;
-  url, resposta, respostaDownload: String;
-  status: String;
-  jsonRetorno: TJSONObject;
+  resposta: String;
 begin
   // Monta o Json
     json := '{' +
@@ -334,9 +343,7 @@ begin
 end;
 function listarNSNRecs(json: String): String; Overload;
 var
-  url, resposta, respostaDownload: String;
-  status: String;
-  jsonRetorno: TJSONObject;
+  url, resposta: String;
 begin
 
   url := 'https://NFSe.ns.eti.br/util/list/nsnrecs';
@@ -358,6 +365,11 @@ var
   arquivo: TextFile;
   conteudoSalvar, localParaSalvar: String;
 begin
+  if not DirectoryExists(caminho) then
+  begin
+     CreateDir(caminho);
+  end;
+
   // Seta o caminho para o arquivo XML
   localParaSalvar := caminho + nome;
 
@@ -385,19 +397,15 @@ var
   caminhoEXE, nomeArquivo, data: String;
   log: TextFile;
 begin
-  // Pega o caminho do executável
+
   caminhoEXE := ExtractFilePath(GetCurrentDir);
   caminhoEXE := caminhoEXE + 'log\';
 
-  // Pega a data atual
   data := DateToStr(Date);
-
-  // Ajeita o XML retirando as barras antes das aspas duplas
   data := StringReplace(data, '/', '', [rfReplaceAll, rfIgnoreCase]);
 
   nomeArquivo := caminhoEXE + data;
 
-  // Se diretório \log não existe, é criado
   if not DirectoryExists(caminhoEXE) then
     CreateDir(caminhoEXE);
 
@@ -406,11 +414,11 @@ begin
   Reset(log);
 {$I+}
   if (IOResult <> 0) then
-    Rewrite(log) { arquivo não existe e será criado }
+    Rewrite(log)
   else
   begin
     CloseFile(log);
-    Append(log); { o arquivo existe e será aberto para saídas adicionais }
+    Append(log);
   end;
 
   Writeln(log, DateTimeToStr(Now) + ' - ' + conteudo);
