@@ -27,8 +27,8 @@ object frmPrincipal: TfrmPrincipal
     ParentFont = False
   end
   object labelTokenEnviar: TLabel
-    Left = 218
-    Top = 8
+    Left = 202
+    Top = 6
     Width = 174
     Height = 16
     Caption = 'Inscri'#231#227'o Municipal do CNPJ:'
@@ -185,6 +185,20 @@ object frmPrincipal: TfrmPrincipal
           '2'
           '1')
       end
+      object cbSalvarXML: TCheckBox
+        Left = 232
+        Top = 212
+        Width = 153
+        Height = 17
+        Caption = 'Salvar XML autorizado'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'MS Sans Serif'
+        Font.Style = []
+        ParentFont = False
+        TabOrder = 6
+      end
     end
   end
   object txtCNPJ: TEdit
@@ -201,8 +215,8 @@ object frmPrincipal: TfrmPrincipal
     TabOrder = 1
   end
   object txtIMCNPJ: TEdit
-    Left = 218
-    Top = 30
+    Left = 202
+    Top = 28
     Width = 174
     Height = 24
     Font.Charset = DEFAULT_CHARSET

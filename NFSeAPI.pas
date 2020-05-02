@@ -1,4 +1,4 @@
-unit NFSeAPI;
+ï»¿unit NFSeAPI;
 
 interface
 
@@ -8,26 +8,28 @@ uses
   IdIOHandlerStack,
   IdSSL, IdSSLOpenSSL, ShellApi, IdCoderMIME, EncdDecd;
 
-// Assinatura das funções
+// Assinatura das funï¿½ï¿½es
 function enviaConteudoParaAPI(conteudoEnviar, url, tpConteudo: String; tpAmb: String = ''): String;
 
 function emitirNFSeSincrono(conteudo, tpConteudo, CNPJ, im, municipio,
-tpAmb: String; exibeNaTela: boolean = false): String;
+tpAmb: String; salvaXML: boolean; exibeNaTela: boolean = false): String;
 function emitirNFSe(conteudo, tpConteudo, tpAmb, municipio: String): String;
 function consultarStatusProcessamento(CNPJ, nsNRec, tpAmb, IM, municipio: String): String;
-procedure downloadNFSe(xml, pdf, chave, CNPJ:String; exibeNatela: boolean);
-//Eventos
-function cancelarNFSe(xml, municipio, tpAmb, caminho: String): String; Overload;
-function cancelarNFSe(cnpj, im, municipio, cMun, codigo, nNF, tpAmb, caminho: String): String;  Overload;
-function cancelarNFSe(conteudo, tpConteudo, municipio, tpAmb, caminho: String): String; Overload;
+procedure downloadNFSe(xml, pdf, chave, CNPJ: String; salvaXML, exibeNatela: boolean);
 
-//Funções
+//Eventos
+procedure downloadEventoNFSe(xml, idEvento, CNPJ: String);
+function cancelarNFSe(xml, CNPJ, municipio, tpAmb, caminho: String): String; Overload;
+function cancelarNFSe(CNPJ, im, municipio, cMun, codigo, nNF, tpAmb, caminho: String): String;  Overload;
+function cancelarNFSe(conteudo, tpConteudo, CNPJ, municipio, tpAmb, caminho: String): String; Overload;
+
+//Funï¿½ï¿½es
 function listarNSNRecs(cnpj, tpAmb: String; nRPS: String = ''; serieRPS: String = ''): String; Overload;
 function listarNSNRecs(cnpj, tpAmb: String; nNF: String = ''): String; Overload;
 function listarNSNRecs(json: String): String; Overload;
 
 //Utilitarios
-function salvarXML(xml, caminho, nome: String): String;
+procedure salvarXML(xml, caminho, nome, CNPJ: String);
 procedure gravaLinhaLog(conteudo: String);
 
 implementation
@@ -39,7 +41,7 @@ var
   tempoEspera: Integer = 600;
   token: String = 'SEU_TOKEN';
 
-// Função genérica de envio para um url
+// Funï¿½ï¿½o genï¿½rica de envio para um url
 function enviaConteudoParaAPI(conteudoEnviar, url, tpConteudo: String; tpAmb: String = ''): String;
 var
   retorno: String;
@@ -87,16 +89,16 @@ begin
   Result := retorno;
 end;
 
-// Esta função emite uma NF-e de forma síncrona, fazendo o envio, a consulta e o download da nota
+// Esta funï¿½ï¿½o emite uma NF-e de forma sï¿½ncrona, fazendo o envio, a consulta e o download da nota
 function emitirNFSeSincrono(conteudo, tpConteudo, CNPJ, im, municipio,
-tpAmb: String; exibeNaTela: boolean = false): String;
+tpAmb: String; salvaXML: boolean; exibeNaTela: boolean = false): String;
 var
   retorno, resposta, statusEnvio, statusConsulta, motivo, nsNRec,
-  chave, cStat, nNF, pdf, xml, caminho: String;
+  chave, cStat, nNF, pdf, xml: String;
   erro: TJSONValue;
   jsonRetorno, jsonAux: TJSONObject;
 begin
-  // Inicia as variáveis vazias
+  // Inicia as variï¿½veis vazias
   statusEnvio := '';
   statusConsulta := '';
   motivo := '';
@@ -107,7 +109,6 @@ begin
   cStat := '';
   pdf := '';
   xml := '';
-  caminho := '';
 
   resposta := emitirNFSe(conteudo, tpConteudo, tpAmb, municipio);
   jsonRetorno := TJSONObject.ParseJSONValue(TEncoding.ASCII.GetBytes(resposta),
@@ -142,7 +143,7 @@ begin
         pdf := jsonRetorno.GetValue('urlImpressao').Value;
         xml := jsonRetorno.GetValue('xml').Value;
 
-        downloadNFSe(xml, pdf, chave, CNPJ, exibeNatela);
+        downloadNFSe(xml, pdf, chave, CNPJ, salvaXML, exibeNatela);
 
       end
       else
@@ -173,9 +174,10 @@ begin
                   '"statusEnvio": "'    + statusEnvio    + '",'  +
                   '"statusConsulta": "' + statusConsulta + '",'  +
                   '"cStat": "'          + cStat          + '",'  +
-                  '"nNFPref: "'         + nNF            + '",'  +
+                  '"nNFPref": "'         + nNF            + '",'  +
                   '"chave": "'          + chave          + '",'  +
                   '"nsNRec": "'         + nsNRec         + '",'  +
+                  '"pdf": "'            + pdf            + '",'  +
                   '"motivo": "'         + motivo         + '"'  +
              '}';
 
@@ -228,45 +230,67 @@ begin
 
   Result := resposta;
 end;
-procedure downloadNFSe(xml, pdf, chave, CNPJ:String; exibeNatela: boolean);
+// Faz o download do PDF e XML
+procedure downloadNFSe(xml, pdf, chave, CNPJ: String; salvaXML, exibeNatela: boolean);
 var
   caminho: String;
 begin
 
-  caminho := ExtractFilePath(GetCurrentDir) + CNPJ + '\xmls\';
-
-  salvarXML(xml, caminho, chave);
-
-  if(exibeNaTela)then
+  if(salvaXML)then
   begin
-      ShellExecute(Application.Handle, 'open', PChar(pdf),
-      nil, nil, SW_SHOWMAXIMIZED);
+    caminho := ExtractFilePath(GetCurrentDir) + 'XMLsEmissoes\';
+
+    if not DirectoryExists(caminho) then
+    begin
+       CreateDir(caminho);
+    end;
+
+    salvarXML(xml, caminho, chave + '-procNFSe', CNPJ);
   end;
 
+  if(exibeNaTela)then
+      ShellExecute(Application.Handle, 'open', PChar(pdf),
+      nil, nil, SW_SHOWMAXIMIZED);
+
 end;
 
-// Realizar o cancelamento da NF-e
-function cancelarNFSe(xml, municipio, tpAmb, caminho: String): String; Overload;
+
+// Eventos
+procedure downloadEventoNFSe(xml, idEvento, CNPJ: String);
+var
+  caminho: String;
 begin
-  Result := cancelarNFSe(xml, 'xml', municipio, tpAmb, caminho);
+    caminho := ExtractFilePath(GetCurrentDir) + 'XMLsEventos\';
+
+    if not DirectoryExists(caminho) then
+    begin
+       CreateDir(caminho);
+    end;
+
+    salvarXML(xml, caminho, idEvento + '-procEventNFSe', CNPJ);
 end;
-function cancelarNFSe(cnpj, im, municipio, cMun, codigo, nNF, tpAmb, caminho: String): String;  Overload;
+// Realizar o cancelamento da NF-e
+function cancelarNFSe(xml, CNPJ, municipio, tpAmb, caminho: String): String; Overload;
+begin
+  Result := cancelarNFSe(xml, 'xml', CNPJ, municipio, tpAmb, caminho);
+end;
+function cancelarNFSe(CNPJ, im, municipio, cMun, codigo, nNF, tpAmb, caminho: String): String;  Overload;
 var
   json: String;
 begin
 
   json := '{' +
-              '"CNPJ": "'    + cnpj    + '",' +
+              '"CNPJ": "'    + CNPJ    + '",' +
               '"IM": "'      + im    + '",' +
               '"nNF": "'     + nNF + '",' +
               '"cMun": "'    + cMun    + '",' +
               '"codigo": "'  + codigo    + '"'  +
           '}';
 
-  Result := cancelarNFSe(json, 'json', municipio, tpAmb, caminho);
+  Result := cancelarNFSe(json, 'json', CNPJ, municipio, tpAmb, caminho);
 
 end;
-function cancelarNFSe(conteudo, tpConteudo, municipio, tpAmb, caminho: String): String;  Overload;
+function cancelarNFSe(conteudo, tpConteudo, CNPJ, municipio, tpAmb, caminho: String): String;  Overload;
 var
   url, resposta, status, cStat, xml, idEvento: String;
   retEvento: TJSONValue;
@@ -301,7 +325,7 @@ begin
     begin
       xml := jsonAux.GetValue('xml').Value;
       idEvento := jsonAux.GetValue('idEvento').Value;
-      salvarXML(xml, caminho, idEvento + '-procEvenNFSe.xml');
+      downloadEventoNFSe(xml, idEvento, CNPJ);
     end;
   end;
 
@@ -359,35 +383,26 @@ begin
   Result := resposta;
 end;
 
-// Função para salvar o XML de retorno
-function salvarXML(xml, caminho, nome: String): String;
+// Funï¿½ï¿½o para salvar o XML de retorno
+procedure salvarXML(xml, caminho, nome, CNPJ: String);
 var
   arquivo: TextFile;
   conteudoSalvar, localParaSalvar: String;
 begin
+
+  caminho := caminho + CNPJ + '\';
+
   if not DirectoryExists(caminho) then
-  begin
-     CreateDir(caminho);
-  end;
+    CreateDir(caminho);
 
-  // Seta o caminho para o arquivo XML
-  localParaSalvar := caminho + nome;
+  AssignFile(arquivo, caminho + nome + '.xml');
 
-  // Associa o arquivo ao caminho
-  AssignFile(arquivo, localParaSalvar);
-  // Abre para escrita o arquivo
   Rewrite(arquivo);
 
-  // Copia o retorno
-  conteudoSalvar := xml;
-  // Ajeita o XML retirando as barras antes das aspas duplas
-  conteudoSalvar := StringReplace(conteudoSalvar, '\"', '"',
-    [rfReplaceAll, rfIgnoreCase]);
+  conteudoSalvar := StringReplace(xml, '\"', '"', [rfReplaceAll, rfIgnoreCase]);
 
-  // Escreve o retorno no arquivo
   Writeln(arquivo, conteudoSalvar);
 
-  // Fecha o arquivo
   CloseFile(arquivo);
 end;
 
@@ -398,8 +413,7 @@ var
   log: TextFile;
 begin
 
-  caminhoEXE := ExtractFilePath(GetCurrentDir);
-  caminhoEXE := caminhoEXE + 'log\';
+  caminhoEXE := ExtractFilePath(GetCurrentDir) + 'log\';
 
   data := DateToStr(Date);
   data := StringReplace(data, '/', '', [rfReplaceAll, rfIgnoreCase]);

@@ -26,6 +26,7 @@ type
     cbTpAmb: TComboBox;
     Label3: TLabel;
     cbMunicipio: TComboBox;
+    cbSalvarXML: TCheckBox;
     procedure btnEnviarClick(Sender: TObject);
   private
     { Private declarations }
@@ -45,7 +46,7 @@ uses NFSeAPI, System.JSON;
 procedure TfrmPrincipal.btnEnviarClick(Sender: TObject);
 var
   retorno, statusEnvio, statusConsulta, statusDownload: String;
-  cStat, nNF, chave, motivo, nsNRec, erros: String;
+  cStat, nNF, chave, motivo, nsNRec, pdf: String;
   jsonRetorno : TJSONObject;
 begin
 
@@ -57,10 +58,10 @@ begin
     memoRetorno.Lines.Clear;
 
     retorno := emitirNFSeSincrono(memoConteudoEnviar.Text, cbTpConteudo.Text,
-    txtCNPJ.Text, txtIMCNPJ.Text, cbMunicipio.Text, cbTpAmb.Text, chkExibir.Checked);
+    txtCNPJ.Text, txtIMCNPJ.Text, cbMunicipio.Text, cbTpAmb.Text,
+    cbSalvarXML.Checked, chkExibir.Checked);
 
     memoRetorno.Text := retorno;
-
     jsonRetorno := TJSONObject.ParseJSONValue(TEncoding.ASCII.GetBytes(retorno), 0) as TJSONObject;
 
 	  statusEnvio := jsonRetorno.GetValue('statusEnvio').Value;
@@ -70,6 +71,7 @@ begin
     chave := jsonRetorno.GetValue('chave').Value;
     motivo := jsonRetorno.GetValue('motivo').Value;
 	  nsNRec := jsonRetorno.GetValue('nsNRec').Value;
+    pdf := jsonRetorno.GetValue('pdf').Value;
 
     //Aqui voce pode fazer uma validação para mostrar na tela as informações necessarias
 
