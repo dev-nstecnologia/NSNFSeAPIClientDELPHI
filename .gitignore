@@ -70,3 +70,6 @@ modules/
 
 #Ignore log of NSTecnologia
 Win32/log/
+
+#Ignore XMls of NSTecnologia
+Win32/XMLs/
