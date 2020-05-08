@@ -5,7 +5,9 @@ uses
   principal in 'principal.pas' {frmPrincipal},
   NFeAPI in 'NFSeAPI.pas',
   Vcl.Themes,
-  Vcl.Styles;
+  Vcl.Styles,
+  EnvioNFSe in 'Layouts\ABRASF\EnvioNFSe.pas',
+  StatusProcessamentoReq in 'Layouts\StatusProcessamentoReq.pas';
 
 {$R *.res}
 

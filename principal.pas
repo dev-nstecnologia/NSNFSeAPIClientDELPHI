@@ -41,7 +41,7 @@ implementation
 
 {$R *.dfm}
 
-uses NFSeAPI, System.JSON;
+uses NFSeAPI, System.Json;
 
 procedure TfrmPrincipal.btnEnviarClick(Sender: TObject);
 var
@@ -49,7 +49,6 @@ var
   cStat, nNF, chave, motivo, nsNRec, pdf: String;
   jsonRetorno : TJSONObject;
 begin
-
   if ((txtIMCNPJ.Text <> '') and
       (txtCNPJ.Text <> '') and
       (memoConteudoEnviar.Text <> '')) then
@@ -78,4 +77,5 @@ begin
     ShowMessage(motivo);
   end;
 end;
+
 end.

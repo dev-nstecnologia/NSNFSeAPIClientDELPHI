@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ComCtrls, StdCtrls, IdHTTP, IdIOHandler, IdIOHandlerSocket,
   IdIOHandlerStack,
-  IdSSL, IdSSLOpenSSL, ShellApi, IdCoderMIME, EncdDecd;
+  IdSSL, IdSSLOpenSSL, ShellApi, IdCoderMIME, EncdDecd, StatusProcessamentoReq;
 
 // Assinatura das fun��es
 function enviaConteudoParaAPI(conteudoEnviar, url, tpConteudo: String; tpAmb: String = ''): String;
@@ -41,7 +41,6 @@ var
   tempoEspera: Integer = 600;
   token: String = 'SEU_TOKEN';
 
-// Fun��o gen�rica de envio para um url
 function enviaConteudoParaAPI(conteudoEnviar, url, tpConteudo: String; tpAmb: String = ''): String;
 var
   retorno: String;
@@ -89,7 +88,7 @@ begin
   Result := retorno;
 end;
 
-// Esta fun��o emite uma NF-e de forma s�ncrona, fazendo o envio, a consulta e o download da nota
+// Esta função emite uma NF-e de forma sincrona, fazendo o envio, a consulta e o download da nota
 function emitirNFSeSincrono(conteudo, tpConteudo, CNPJ, im, municipio,
 tpAmb: String; salvaXML: boolean; exibeNaTela: boolean = false): String;
 var
@@ -139,10 +138,8 @@ begin
         chave := jsonRetorno.GetValue('chave').Value;
         motivo := jsonRetorno.GetValue('xMotivo').Value;
         nNF := jsonRetorno.GetValue('nNF').Value;
-
         pdf := jsonRetorno.GetValue('urlImpressao').Value;
         xml := jsonRetorno.GetValue('xml').Value;
-
         downloadNFSe(xml, pdf, chave, CNPJ, salvaXML, exibeNatela);
 
       end
@@ -206,17 +203,17 @@ begin
   Result := resposta;
 end;
 // Consultar Status de Processamento
-function consultarStatusProcessamento(CNPJ, nsNRec, tpAmb, IM, municipio: String): String;
+function consultarStatusProcessamento(cnpj, nsNRec, tpAmb, im, municipio: String): String;
 var
-  json: String;
-  url, resposta: String;
+  consulta: TStatusProcessamentoReq;
+  json, url, resposta: String;
 begin
 
-  json := '{' +
-              '"CNPJ": "'    + CNPJ   + '",' +
-              '"nsNRec": "'  + nsNRec + '",' +
-              '"IM": "'      + IM     + '"'  +
-          '}';
+  consulta:= TStatusProcessamentoReq.Create;
+  consulta.CNPJ:= cnpj;
+  consulta.nsNRec:= nsNRec;
+  consulta.IM:= im;
+  json := consulta.ToJsonString;
 
   url := 'https://nfseapi.ns.eti.br/v1/' + municipio + '/emissao/status';
 
@@ -332,7 +329,7 @@ begin
   Result := resposta;
 end;
 
-// Realiza a listagem de nsNRec vinculados a uma chave de NF-e
+// Realiza a listagem de nsNRec vinculados a uma chave de NFS-e
 function listarNSNRecs(cnpj, tpAmb, nRPS, serieRPS: String): String; Overload;
 var
   json: String;
@@ -370,7 +367,7 @@ var
   url, resposta: String;
 begin
 
-  url := 'https://NFSe.ns.eti.br/util/list/nsnrecs';
+  url := 'https://nfseapi.ns.eti.br/v1/nfse/listarnsnrecs';
 
   gravaLinhaLog('[LISTA_NSNRECS_DADOS]');
   gravaLinhaLog(json);
@@ -383,7 +380,6 @@ begin
   Result := resposta;
 end;
 
-// Fun��o para salvar o XML de retorno
 procedure salvarXML(xml, caminho, nome, CNPJ: String);
 var
   arquivo: TextFile;
@@ -406,7 +402,6 @@ begin
   CloseFile(arquivo);
 end;
 
-// Grava uma linha no log
 procedure gravaLinhaLog(conteudo: String);
 var
   caminhoEXE, nomeArquivo, data: String;
