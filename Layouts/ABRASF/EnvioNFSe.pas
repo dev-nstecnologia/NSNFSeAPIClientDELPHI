@@ -128,9 +128,9 @@ type
     FValorCofins: string;
     [JSONName('Valorinss')]
     FValorinss: string;
-    [JSONName('CodMun')]
-    FValorIr: string;
     [JSONName('ValorIr')]
+    FValorIr: string;
+    [JSONName('ValorCsll')]
     FValorCsll: string;
     [JSONName('IssRetido')]
     FIssRetido: Integer;
