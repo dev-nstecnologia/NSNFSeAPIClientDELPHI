@@ -1,4 +1,4 @@
-﻿unit NFSeAPI;
+unit NFSeAPI;
 
 interface
 
@@ -96,6 +96,7 @@ var
   chave, cStat, nNF, pdf, xml: String;
   erro: TJSONValue;
   jsonRetorno, jsonAux: TJSONObject;
+
 begin
   // Inicia as vari�veis vazias
   statusEnvio := '';
@@ -206,7 +207,9 @@ end;
 function consultarStatusProcessamento(cnpj, nsNRec, tpAmb, im, municipio: String): String;
 var
   consulta: TStatusProcessamentoReq;
-  json, url, resposta: String;
+  json, url, resposta, statusConsulta, cStat: String;
+  jsonRetorno: TJSONObject;
+  I: Integer;
 begin
 
   consulta:= TStatusProcessamentoReq.Create;
@@ -224,6 +227,33 @@ begin
 
   gravaLinhaLog('[CONSULTA_STATUS_PROCESSAMENTO_RESPOSTA]');
   gravaLinhaLog(resposta);
+
+  jsonRetorno := TJSONObject.ParseJSONValue
+      (TEncoding.ASCII.GetBytes(resposta), 0) as TJSONObject;
+  statusConsulta := jsonRetorno.GetValue('status').Value;
+
+  if(statusConsulta = '200')then
+  begin
+
+      cStat := jsonRetorno.GetValue('cStat').Value;
+
+      if(cStat = '892')then
+      begin
+        for I := 1 to 6 do
+        begin
+          sleep(tempoEspera*I);
+          gravaLinhaLog('[RECONSULTA]');
+          resposta := consultarStatusProcessamento(CNPJ, nsNRec, tpAmb, im, municipio);
+          jsonRetorno := TJSONObject.ParseJSONValue
+            (TEncoding.ASCII.GetBytes(resposta), 0) as TJSONObject;
+          cStat := jsonRetorno.GetValue('cStat').Value;
+          if (cStat <> '892') then
+          begin
+               Break;
+          end;
+        end;
+      end;
+  end;
 
   Result := resposta;
 end;
