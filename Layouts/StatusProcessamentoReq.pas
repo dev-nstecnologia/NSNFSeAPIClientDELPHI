@@ -1,4 +1,4 @@
-unit Layouts.StatusProcessamentoReq;
+unit StatusProcessamentoReq;
 
 interface
 uses System.Json, REST.Json, REST.Json.Types;
@@ -8,13 +8,13 @@ type
     [JSONName('CNPJ')]
     FCnpj: string;
     [JSONName('nsNRec')]
-    FnsNRec: Integer;
+    FnsNRec: string;
     [JSONName('IM')]
     FIM: string;
   public
     function ToJsonString: string;
     property CNPJ: string read FCnpj write FCnpj;
-    property nsNRec: Integer read FnsNRec write FnsNRec;
+    property nsNRec: string read FnsNRec write FnsNRec;
     property IM: string read FIM write FIM;
   end;
 implementation
